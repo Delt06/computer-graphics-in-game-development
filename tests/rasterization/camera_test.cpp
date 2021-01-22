@@ -127,7 +127,7 @@ SCENARIO("Camera produces correct projection matrix")
 			camera.set_z_near(1.f);
 			camera.set_z_far(10.f);
 
-			THEN("get_view_matrix returns correct matrix")
+			THEN("get_projection_matrix returns correct matrix")
 			{
 				float4x4 matrix{ { 0.97428f, 0.f, 0.f, 0.f },
 								 { 0.f, 1.73205f, 0.f, 0.f },
