@@ -63,13 +63,12 @@ inline void rasterizer<VB, RT>::clear_render_target(const RT& in_clear_value, co
 			render_target->item(i) = in_clear_value;
 		}
 	}
-
 }
 
 template<typename VB, typename RT>
 inline void rasterizer<VB, RT>::set_vertex_buffer(std::shared_ptr<resource<VB>> in_vertex_buffer)
 {
-	THROW_ERROR("Not implemented yet");
+	vertex_buffer = in_vertex_buffer;
 }
 
 template<typename VB, typename RT>

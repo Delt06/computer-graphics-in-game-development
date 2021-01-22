@@ -5,12 +5,17 @@
 
 void cg::renderer::rasterization_renderer::init()
 {
+	// Load model
+	model = std::make_shared<cg::world::model>();
+	model->load_obj(settings->model_path);
+
 	// Create render target
 	render_target = std::make_shared<cg::resource<cg::unsigned_color>>(settings->width, settings->height);
 
 	// Create rasterizer
 	rasterizer = std::make_shared<cg::renderer::rasterizer<vertex, cg::unsigned_color>>();
 	rasterizer->set_render_target(render_target);
+	rasterizer->set_vertex_buffer(model->get_vertex_buffer());
 }
 
 void cg::renderer::rasterization_renderer::destroy() {}
