@@ -41,6 +41,12 @@ void cg::renderer::rasterization_renderer::destroy() {}
 
 void cg::renderer::rasterization_renderer::update() {}
 
+inline float smoothstep(float edge0, float edge1, float x)
+{
+	x = std::clamp((x - edge0) / (edge1 - edge0), 0.f, 1.f);
+	return x * x * (3 - 2 * x);
+}
+
 void cg::renderer::rasterization_renderer::render()
 {
 	float4x4 matrix =
@@ -51,17 +57,28 @@ void cg::renderer::rasterization_renderer::render()
 		return std::make_pair(processed_vertex, vertex_data);
 	};
 	rasterizer->pixel_shader = [&](cg::vertex vertex_data, float z) {
-		return cg::color{ vertex_data.ambient_r,
-						  vertex_data.ambient_g,
-						  vertex_data.ambient_b};
-		/*float3 normal = float3{ vertex_data.nx, vertex_data.ny, vertex_data.nz};
-		float3 light_direction = normalize(float3(0.5f, -1.f, 0.5f));
-		float diffuse = std::clamp(dot(normal, light_direction), 0.f, 1.f);
-		return cg::color{ vertex_data.ambient_r * diffuse,
-						  vertex_data.ambient_g * diffuse,
-						  vertex_data.ambient_b * diffuse };*/
+		/*return cg::color{ vertex_data.diffuse_r,
+						  vertex_data.diffuse_g,
+						  vertex_data.diffuse_b};*/
+		float3 normal = float3{ vertex_data.nx, vertex_data.ny, vertex_data.nz};
+		float3 light_direction = normalize(float3(-0.5f, -1.f, -0.5f));
+		float3 towards_light_direction = -light_direction;
+		float3 view = -camera->get_direction();
+		float3 half = (view + towards_light_direction) * 0.5f;
+		float diffuse = dot(normal, towards_light_direction);
+		float specular = std::pow(std::clamp(dot(normal, half), 0.f, 1.f), 3.f);
+		float fresnel = std::pow(1 - dot(normal, view), 2.5f);
+
+		// clamp
+		diffuse = std::clamp(diffuse, 0.f, 1.f);
+		specular = std::clamp(specular, 0.f, 1.f);
+		fresnel = std::clamp(fresnel, 0.f, 1.f);
+
+		return cg::color{ vertex_data.diffuse_r * diffuse + specular + fresnel + vertex_data.ambient_r * 0.5f,
+						  vertex_data.diffuse_g * diffuse + specular + fresnel + vertex_data.ambient_g * 0.5f,
+						  vertex_data.diffuse_b * diffuse + specular + fresnel + vertex_data.ambient_b * 0.5f };
 	};
-	rasterizer->clear_render_target({255, 0, 255});
+	rasterizer->clear_render_target({50, 200, 240});
 	rasterizer->draw(model->get_vertex_buffer()->get_number_of_elements(), 0);
 	cg::utils::save_resource(*render_target, settings->result_path);
 }
