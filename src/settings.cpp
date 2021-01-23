@@ -40,6 +40,7 @@ std::shared_ptr<settings> cg::settings::parse_settings(int argc, char** argv)
 	add_options(
 		"accumulation_num", "Number of accumulated frames",
 		cxxopts::value<unsigned>()->default_value("4"));
+	add_options("smooth_shading", "Smooth shading", cxxopts::value<bool>()->default_value("true"));
 	add_options("h,help", "Print usage");
 
 	auto result = options.parse(argc, argv);
@@ -60,6 +61,7 @@ std::shared_ptr<settings> cg::settings::parse_settings(int argc, char** argv)
 	settings->camera_z_far = result["camera_z_far"].as<float>();
 	settings->result_path = result["result_path"].as<std::filesystem::path>();
 	settings->accumulation_num = result["accumulation_num"].as<unsigned>();
+	settings->smooth_shading = result["smooth_shading"].as<bool>();
 
 	return settings;
 }

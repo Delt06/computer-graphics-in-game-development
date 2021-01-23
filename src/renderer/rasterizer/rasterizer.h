@@ -31,6 +31,7 @@ public:
 
 	std::function<std::pair<float4, VB>(float4 vertex, VB vertex_data)> vertex_shader;
 	std::function<cg::color(const VB& vertex_data, const float z)> pixel_shader;
+	bool smooth_shading = true;
 
 protected:
 	std::shared_ptr<cg::resource<VB>> vertex_buffer;
@@ -161,9 +162,20 @@ inline void rasterizer<VB, RT>::draw(size_t num_vertexes, size_t vertex_offset)
 
 				if (edge0 >= 0.f && edge1 >= 0.f && edge2 >= 0.f)
 				{
-					float u = edge1 / edge;
-					float v = edge2 / edge;
-					float w = edge0 / edge;
+					float u, v, w;
+
+					if (smooth_shading)
+					{
+						u = edge1 / edge;
+						v = edge2 / edge;
+						w = edge0 / edge;
+					}
+					else
+					{
+						u = 0.333f;
+						v = 0.333f;
+						w = 0.333f;
+					}
 
 					float z =
 						u * vertices[0].z + v * vertices[1].z + w * vertices[2].z;

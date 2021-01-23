@@ -93,6 +93,36 @@
       ]
     },
     {
+      "Id": "cc1d5d6e-f5fb-4708-aa71-b5e46e1f3c05",
+      "Command": "LowPolyMale",
+      "Items": [
+        {
+          "Id": "36007a25-31e3-4e74-8786-ba65bca89ce3",
+          "Command": "--model_path=models\\male_casual.obj"
+        },
+        {
+          "Id": "6e8e5dcf-ed23-4205-9988-ae5942b78840",
+          "Command": "--camera_position=-2,5,5"
+        },
+        {
+          "Id": "a281ea51-2524-409b-a7c4-a87db20d9caf",
+          "Command": "--camera_phi=-25"
+        },
+        {
+          "Id": "d00bca3e-b6dc-49ce-a99b-08ca392b3e96",
+          "Command": "--camera_theta=15"
+        },
+        {
+          "Id": "2c99e245-1215-4f0a-b1ea-f23eefe1b2f3",
+          "Command": "--result_path=rasterizer_cube.png"
+        },
+        {
+          "Id": "a742bdb4-038b-4e5e-83e6-746e875871fe",
+          "Command": "--smooth_shading=false"
+        }
+      ]
+    },
+    {
       "Id": "ea6935c0-9621-41d7-9fb8-e372b59fdb02",
       "Command": "Stickman",
       "Items": [
