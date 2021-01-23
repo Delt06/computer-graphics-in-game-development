@@ -169,8 +169,11 @@ inline void rasterizer<VB, RT>::draw(size_t num_vertexes, size_t vertex_offset)
 						u * vertices[0].z + v * vertices[1].z + w * vertices[2].z;
 					if (depth_test(z, x, y))
 					{
-						// TODO: interpolate via barycentric coordinates
-						auto pixel_shader_result = pixel_shader(vertices[0], 0.f);
+						// interpolate via barycentric coordinates
+						vertex interpolated_vertex = VB::interpolate_bary(
+							vertices[0], vertices[1], vertices[2], u, v, w);
+						auto pixel_shader_result =
+							pixel_shader(interpolated_vertex, z);
 						render_target->item(x, y) =
 							cg::unsigned_color::from_color(pixel_shader_result);
 
