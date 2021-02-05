@@ -253,7 +253,7 @@ inline payload
 	float3 pvec = cross(ray.direction, triangle.ca);
 	float det = dot(triangle.ba, pvec);
 
-	const float epsilon = 1e-8;
+	const float epsilon = 1e-8f;
 	if (abs(det) < epsilon)
 		return payload;
 
