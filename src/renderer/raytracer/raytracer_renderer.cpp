@@ -42,15 +42,26 @@ void cg::renderer::ray_tracing_renderer::destroy() {}
 
 void cg::renderer::ray_tracing_renderer::update() {}
 
+inline float smoothstep(float edge0, float edge1, float x)
+{
+	x = std::clamp((x - edge0) / (edge1 - edge0), 0.f, 1.f);
+	return x * x * (3 - 2 * x);
+}
+
 void cg::renderer::ray_tracing_renderer::render()
 {
 	raytracer->clear_render_target({ 0, 0, 0 });
 	raytracer->miss_shader = [](const ray& ray) 
 	{ 
 		payload payload;
-		payload.color = { ray.direction.x * 0.5f + 0.5f, ray.direction.y * 0.5f + 0.5f,
-						  ray.direction.z * 0.5f + 0.5f};
+		float3 ground = float3(0.8f, 0.7f, 0.7f);
+		float3 sky = float3(77.f / 255.f, 174.f / 255.f, 219.f / 255.f);
+		float t = smoothstep(0.f, 0.5f, ray.direction.y + 0.5f);
+		float3 color = ground * (1 - t) + sky * t;
+		payload.color = cg::color::from_float3(color);
 		return payload;
+		/*payload.color = { ray.direction.x * 0.5f + 0.5f, ray.direction.y *
+		   0.5f + 0.5f, ray.direction.z * 0.5f + 0.5f};*/
 	};
 	raytracer->closest_hit_shader = [&](const ray& ray, payload& payload,
 									   const triangle<cg::vertex>& triangle) 
