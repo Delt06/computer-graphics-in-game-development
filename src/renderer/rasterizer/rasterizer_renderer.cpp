@@ -67,13 +67,15 @@ void cg::renderer::rasterization_renderer::render()
 		float3 view = -camera->get_direction();
 		float3 half = (view + towards_light_direction) * 0.5f;
 		float diffuse = dot(normal, towards_light_direction);
+		float specular = std::pow(std::clamp(dot(normal, half), 0.f, 1.f), 5.f);
 
 		// clamp
 		diffuse = std::clamp(diffuse, 0.f, 1.f);
+		specular = std::clamp(specular, 0.f, 1.f);
 
-		return cg::color{ std::clamp(vertex_data.diffuse_r * diffuse + vertex_data.ambient_r * 0.1f, 0.f, 1.f),
-				std::clamp(vertex_data.diffuse_g * diffuse + vertex_data.ambient_g * 0.1f, 0.f, 1.f),
-				std::clamp(vertex_data.diffuse_b * diffuse + vertex_data.ambient_b * 0.1f, 0.f, 1.f)
+		return cg::color{ std::clamp(vertex_data.diffuse_r * diffuse + specular + vertex_data.ambient_r * 0.1f, 0.f, 1.f),
+				std::clamp(vertex_data.diffuse_g * diffuse + specular + vertex_data.ambient_g * 0.1f, 0.f, 1.f),
+				std::clamp(vertex_data.diffuse_b * diffuse + specular + vertex_data.ambient_b * 0.1f, 0.f, 1.f)
 		};
 	};
 	rasterizer->clear_render_target({50, 200, 240});
