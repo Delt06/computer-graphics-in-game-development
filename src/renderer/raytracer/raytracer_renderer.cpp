@@ -8,11 +8,15 @@ void cg::renderer::ray_tracing_renderer::init()
 	render_target = std::make_shared<cg::resource<cg::unsigned_color>>(
 		settings->width, settings->height);
 
+	model = std::make_shared<cg::world::model>();
+	model->load_obj(settings->model_path);
+
 	raytracer =
 		std::make_shared<cg::renderer::raytracer<cg::vertex, cg::unsigned_color>>();
 
 	raytracer->set_render_target(render_target);
 	raytracer->set_viewport(settings->width, settings->height);
+	raytracer->set_per_shape_vertex_buffer(model->get_per_shape_buffer());
 
 	camera = std::make_shared<cg::world::camera>();
 
@@ -46,6 +50,14 @@ void cg::renderer::ray_tracing_renderer::render()
 						  ray.direction.z * 0.5f + 0.5f};
 		return payload;
 	};
+	raytracer->closest_hit_shader = [](const ray& ray, payload& payload,
+									   const triangle<cg::vertex>& triangle) 
+	{
+		payload.color = cg::color::from_float3(triangle.ambient);
+		return payload;
+	};
+
+	raytracer->build_acceleration_structure();
 	raytracer->ray_generation(
 		camera->get_position(), camera->get_direction(), 
 		camera->get_right(), camera->get_up());
