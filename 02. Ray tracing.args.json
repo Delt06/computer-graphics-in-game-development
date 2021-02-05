@@ -89,6 +89,32 @@
       ]
     },
     {
+      "Id": "1b8d7e6e-99f0-4207-b5e4-113f56ecf8b5",
+      "Command": "Stickman",
+      "Items": [
+        {
+          "Id": "f5399606-89f6-4762-bf78-3ca1f484acb1",
+          "Command": "--model_path=models\\stickman.obj"
+        },
+        {
+          "Id": "4dcd2292-aa8e-407e-95c7-d7daadc58376",
+          "Command": "--camera_position=-0.5,2,2"
+        },
+        {
+          "Id": "85de558f-958a-4006-bc29-54911b58fbda",
+          "Command": "--camera_phi=-25"
+        },
+        {
+          "Id": "36b1c4e0-712b-4307-b1e0-5afba7cd2a31",
+          "Command": "--camera_theta=15"
+        },
+        {
+          "Id": "533167d6-df63-4669-8d35-cbf7bc2b878b",
+          "Command": "--result_path=rasterizer_cube.png"
+        }
+      ]
+    },
+    {
       "Id": "c7063580-fc1d-4a1e-a0a6-37da6c98b07a",
       "Command": "--accumulation_num=1"
     },
