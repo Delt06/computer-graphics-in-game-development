@@ -192,6 +192,7 @@ inline void raytracer<VB, RT>::ray_generation(
 {
 	for (int x = 0; x < width; x++)
 	{
+#pragma omp parallel for
 		for (int y = 0; y < height; y++)
 		{
 			// [0; width-1] -> [0;1] -> [0;2] -> [-1, 1]
