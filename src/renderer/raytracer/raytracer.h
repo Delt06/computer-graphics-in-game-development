@@ -118,7 +118,7 @@ public:
 	void build_acceleration_structure();
 	std::vector<aabb<VB>> acceleration_structures;
 
-	void ray_generation(float3 position, float3 direction, float3 right, float3 up);
+	void ray_generation(float3 position, float3 direction, float3 right, float3 up, float frame_weight = 1.f);
 
 	payload trace_ray(const ray& ray, size_t depth, float max_t = 1000.f, float min_t = 0.001f) const;
 	payload intersection_shader(const triangle<VB>& triangle, const ray& ray) const;
@@ -192,22 +192,35 @@ inline void raytracer<VB, RT>::set_viewport(size_t in_width, size_t in_height)
 
 template<typename VB, typename RT>
 inline void raytracer<VB, RT>::ray_generation(
-	float3 position, float3 direction, float3 right, float3 up)
+	float3 position, float3 direction, float3 right, float3 up, float frame_weight)
 {
 	for (int x = 0; x < width; x++)
 	{
 #pragma omp parallel for
 		for (int y = 0; y < height; y++)
 		{
-			// [0; width-1] -> [0;1] -> [0;2] -> [-1, 1]
-			float u = 2.f * x / static_cast<float>(width - 1) - 1.f;
-			u *= static_cast<float>(width) / static_cast<float>(height);
-			float v = 2.f * y / static_cast<float>(height - 1) - 1.f;
-			float3 ray_direction = direction + u * right - v * up; 
-			ray ray(position, ray_direction);
+			float x_jitter = get_random(omp_get_thread_num() + clock());
+			float y_jitter = get_random(omp_get_thread_num() + clock());
 
+			// [0; width-1] -> [0;1] -> [0;2] -> [-1, 1]
+			float u = (2.f * x + x_jitter) / static_cast<float>(width - 1) - 1.f;
+			u *= static_cast<float>(width) / static_cast<float>(height);
+			float v = (2.f * y + y_jitter) / static_cast<float>(height - 1) - 1.f;
+
+			float3 ray_direction =
+				direction + u * right - v * up;
+			ray ray(position, ray_direction);
 			payload payload = trace_ray(ray, 1);
-			render_target->item(x, y) = RT::from_color(payload.color);
+
+			cg::color accumed =
+				cg::color::from_float3(render_target->item(x, y).to_float3());
+			cg::color result{
+				accumed.r * (1.f - frame_weight) + payload.color.r * frame_weight,
+				accumed.g * (1.f - frame_weight) + payload.color.g * frame_weight,
+				accumed.b * (1.f - frame_weight) + payload.color.b * frame_weight,
+			};
+
+			render_target->item(x, y) = RT::from_color(result);
 		}
 	}
 }
@@ -253,8 +266,7 @@ inline payload
 }
 
 template<typename VB, typename RT>
-inline payload
-	raytracer<VB, RT>::intersection_shader(const triangle<VB>& triangle, const ray& ray) const
+inline payload raytracer<VB, RT>::intersection_shader(const triangle<VB>& triangle, const ray& ray) const
 {
 	payload payload{};
 	payload.t = -1.f;

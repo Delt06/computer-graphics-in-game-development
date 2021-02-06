@@ -107,8 +107,12 @@ void cg::renderer::ray_tracing_renderer::render()
 	raytracer->build_acceleration_structure();
 	shadow_raytracer->acceleration_structures = raytracer->acceleration_structures;
 
-	raytracer->ray_generation(
-		camera->get_position(), camera->get_direction(), 
-		camera->get_right(), camera->get_up());
+	for (unsigned frame_id = 0; frame_id < settings->accumulation_num; frame_id++)
+	{
+		raytracer->ray_generation(
+			camera->get_position(), camera->get_direction(),
+			camera->get_right(), camera->get_up(), 1.f / (frame_id + 1.f));
+	}
+
 	cg::utils::save_resource(*render_target, settings->result_path);
 }

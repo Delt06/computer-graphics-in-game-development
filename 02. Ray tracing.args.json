@@ -3,6 +3,32 @@
   "Id": "097ab6f3-7505-24b8-7e16-a7acea2080b8",
   "Items": [
     {
+      "Id": "e0debf11-7d43-4128-ab9b-1a409542e675",
+      "Command": "Stickman",
+      "Items": [
+        {
+          "Id": "2bbfd700-4148-409a-857c-f90dbc55cb23",
+          "Command": "--model_path=models\\stickman.obj"
+        },
+        {
+          "Id": "ba0db9a5-26ec-403a-ad57-c72ac426bcb6",
+          "Command": "--camera_position=-0.5,2,2"
+        },
+        {
+          "Id": "21176be0-9c5e-4351-b67f-bc3da6d5ed08",
+          "Command": "--camera_phi=-25"
+        },
+        {
+          "Id": "5087f80c-483a-4373-8e0e-6fcea3df9a85",
+          "Command": "--camera_theta=15"
+        },
+        {
+          "Id": "b37c751c-f130-408d-ab22-3f58a28787b0",
+          "Command": "--result_path=rasterizer_cube.png"
+        }
+      ]
+    },
+    {
       "Id": "174dfb7a-8a37-4930-82d0-aabf4fa1d060",
       "Command": "720p",
       "Items": [
@@ -121,6 +147,10 @@
     {
       "Id": "a21aa6b8-acee-4ae3-b4ef-e81428c41d05",
       "Command": "--accumulation_num=4"
+    },
+    {
+      "Id": "0d2b8da0-fa9a-4220-996a-85de0e68488e",
+      "Command": "--accumulation_num=16"
     },
     {
       "Id": "08267878-bd7e-4f99-98a1-441cb55d75cf",
