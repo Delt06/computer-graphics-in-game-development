@@ -203,11 +203,30 @@ inline void raytracer<VB, RT>::ray_generation(
 			float u = 2.f * x / static_cast<float>(width - 1) - 1.f;
 			u *= static_cast<float>(width) / static_cast<float>(height);
 			float v = 2.f * y / static_cast<float>(height - 1) - 1.f;
-			float3 ray_direction = direction + u * right - v * up; 
-			ray ray(position, ray_direction);
 
-			payload payload = trace_ray(ray, 1);
-			render_target->item(x, y) = RT::from_color(payload.color);
+			float u_delta = 0.5f / static_cast<float>(width - 1);
+			u_delta *= static_cast<float>(width) / static_cast<float>(height);
+			float v_delta = 0.5f / static_cast<float>(height - 1);
+
+			float3 ray_direction = direction + u * right - v * up; 
+			ray ray_0(position, ray_direction);
+			payload payload_0 = trace_ray(ray_0, 1);
+
+			ray ray_1(position, ray_direction + u_delta * right);
+			payload payload_1 = trace_ray(ray_1, 1);
+
+			ray ray_2(position, ray_direction - v_delta * up);
+			payload payload_2 = trace_ray(ray_2, 1);
+
+			ray ray_3(position, ray_direction + u_delta * right - v_delta * up);
+			payload payload_3 = trace_ray(ray_3, 1);
+
+			cg::color accumed_color {
+				(payload_0.color.r + payload_1.color.r + payload_2.color.r + payload_3.color.r) / 4.f,
+				(payload_0.color.g + payload_1.color.g + payload_2.color.g + payload_3.color.g) / 4.f,
+				(payload_0.color.b + payload_1.color.b + payload_2.color.b + payload_3.color.b) / 4.f,
+			};
+			render_target->item(x, y) = RT::from_color(accumed_color);
 		}
 	}
 }
