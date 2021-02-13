@@ -86,6 +86,8 @@ struct color
 	{
 		return color{ in.x, in.y, in.z };
 	};
+
+	float3 to_float3() { return float3{ r, g, b }; };
 	float r;
 	float g;
 	float b;
