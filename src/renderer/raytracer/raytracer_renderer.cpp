@@ -38,8 +38,7 @@ void cg::renderer::ray_tracing_renderer::init()
 
 	float3 light_position = float3(0, 1.58f, -0.03f);
 	float3 light_color = float3(0.78f, 0.78f, 0.78f);
-
-	/*lights.push_back({ light_position, light_color });*/
+	lights.push_back({ light_position, light_color });
 }
 
 void cg::renderer::ray_tracing_renderer::destroy() {}
@@ -58,8 +57,6 @@ void cg::renderer::ray_tracing_renderer::render()
 	raytracer->miss_shader = [](const ray& ray) 
 	{ 
 		payload payload;
-		payload.color = {0.f, 0.f, 0.f};
-		return payload;
 		float3 ground = float3(0.8f, 0.7f, 0.7f);
 		float3 sky = float3(77.f / 255.f, 174.f / 255.f, 219.f / 255.f);
 		float t = smoothstep(0.f, 0.5f, ray.direction.y + 0.5f);
@@ -70,7 +67,7 @@ void cg::renderer::ray_tracing_renderer::render()
 		   0.5f + 0.5f, ray.direction.z * 0.5f + 0.5f};*/
 	};
 	raytracer->closest_hit_shader = [&](const ray& ray, payload& payload,
-									   const triangle<cg::vertex>& triangle, const size_t depth) 
+									   const triangle<cg::vertex>& triangle) 
 	{
 		float3 result_color = triangle.emissive;
 		float3 position = ray.position + ray.direction * payload.t;
@@ -78,24 +75,15 @@ void cg::renderer::ray_tracing_renderer::render()
 						payload.bary.y * triangle.nb + 
 						payload.bary.z * triangle.nc;
 
-		//for (auto& light : lights)
-		for (size_t i = 0; i < 10; i++)
+		for (auto& light : lights)
 		{
-			float3 direction{
-				raytracer->get_random(omp_get_thread_num() + clock(), 5.f),
-				raytracer->get_random(omp_get_thread_num() + clock(), 5.f),
-				raytracer->get_random(omp_get_thread_num() + clock(), 5.f),
-			};
-			cg::renderer::ray to_light(position, normal + direction);
+			cg::renderer::ray to_light(position, light.position - position);
+			auto shadow_payload =
+				shadow_raytracer->trace_ray(to_light, 1, length(light.position - position));
 
-			auto light_payload = raytracer->trace_ray(to_light, depth);
-
-			/*auto shadow_payload =
-				shadow_raytracer->trace_ray(to_light, 1, length(light.position - position));*/
-
-			//if (shadow_payload.t == -1.f)
+			if (shadow_payload.t == -1.f)
 			{
-				result_color += triangle.diffuse * light_payload.color.to_float3() *
+				result_color += triangle.diffuse * light.color *
 								std::max(0.f, dot(normal, to_light.direction));
 			}
 		}

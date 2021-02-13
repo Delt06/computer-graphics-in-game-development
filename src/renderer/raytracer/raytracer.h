@@ -124,17 +124,17 @@ public:
 	payload intersection_shader(const triangle<VB>& triangle, const ray& ray) const;
 
 	std::function<payload(const ray& ray)> miss_shader = nullptr;
-	std::function<payload(const ray& ray, payload& payload, const triangle<VB>& triangle, const size_t depth)> closest_hit_shader =
+	std::function<payload(const ray& ray, payload& payload, const triangle<VB>& triangle)> closest_hit_shader =
 		nullptr;
 	std::function<payload(const ray& ray, payload& payload, const triangle<VB>& triangle)> any_hit_shader =
 		nullptr;
-
-	float get_random(const int thread_num, float range = 0.1f) const;
 
 
 protected:
 	std::shared_ptr<cg::resource<RT>> render_target;
 	std::vector<std::shared_ptr<cg::resource<VB>>> per_shape_vertex_buffer;
+
+	float get_random(const int thread_num, float range = 0.1f) const;
 
 	size_t width = 1920;
 	size_t height = 1080;
@@ -199,10 +199,8 @@ inline void raytracer<VB, RT>::ray_generation(
 #pragma omp parallel for
 		for (int y = 0; y < height; y++)
 		{
-			float x_jitter = 0.f;
-			//get_random(omp_get_thread_num() + clock());
-			float y_jitter = 0.f;
-			//get_random(omp_get_thread_num() + clock());
+			float x_jitter = get_random(omp_get_thread_num() + clock());
+			float y_jitter = get_random(omp_get_thread_num() + clock());
 
 			// [0; width-1] -> [0;1] -> [0;2] -> [-1, 1]
 			float u = (2.f * x + x_jitter) / static_cast<float>(width - 1) - 1.f;
@@ -212,7 +210,7 @@ inline void raytracer<VB, RT>::ray_generation(
 			float3 ray_direction =
 				direction + u * right - v * up;
 			ray ray(position, ray_direction);
-			payload payload = trace_ray(ray, 5);
+			payload payload = trace_ray(ray, 1);
 
 			cg::color accumed =
 				cg::color::from_float3(render_target->item(x, y).to_float3());
@@ -261,7 +259,7 @@ inline payload
 	if (closest_hit_payload.t < max_t)
 	{
 		if (closest_hit_shader)
-			return closest_hit_shader(ray, closest_hit_payload, *closest_triangle, depth);
+			return closest_hit_shader(ray, closest_hit_payload, *closest_triangle);
 	}
 
 	return miss_shader(ray);
