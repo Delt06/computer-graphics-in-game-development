@@ -17,8 +17,7 @@ void cg::renderer::dx12_renderer::init()
 		0, 0, static_cast<LONG>(settings->width),
 		static_cast<LONG>(settings->height));
 	vertex_buffer_view = {};
-	// TODO: verify matrices
-	/*world_view_projection = camera->get_dxm_view_matrix() * camera->get_dxm_projection_matrix();*/
+
 	constant_buffer_data_begin = nullptr;
 	frame_index = 0;
 
@@ -46,23 +45,36 @@ void cg::renderer::dx12_renderer::init()
 	camera->set_z_far(settings->camera_z_far);
 	camera->set_z_near(settings->camera_z_near);
 
+	world_view_projection =
+		camera->get_dxm_view_matrix() * camera->get_dxm_projection_matrix();
+
 	load_pipeline();
 	load_assets();
 }
 
 void cg::renderer::dx12_renderer::destroy()
 {
-	//THROW_ERROR("Not implemented yet")
+	wait_for_gpu();
+	CloseHandle(fence_event);
 }
 
 void cg::renderer::dx12_renderer::update()
 {
-	//THROW_ERROR("Not implemented yet")
+	world_view_projection =
+		camera->get_dxm_view_matrix() * camera->get_dxm_projection_matrix();
+	memcpy(constant_buffer_data_begin, &world_view_projection, sizeof(world_view_projection));
 }
 
 void cg::renderer::dx12_renderer::render()
 {
-	//THROW_ERROR("Not implemented yet")
+	populate_command_list();
+
+	ID3D12CommandList* command_lists[] = { command_list.Get() };
+	command_queue->ExecuteCommandLists(_countof(command_lists), command_lists);
+
+	THROW_IF_FAILED(swap_chain->Present(0, 0));
+
+	move_to_next_frame();
 }
 
 void cg::renderer::dx12_renderer::load_pipeline()
@@ -152,6 +164,10 @@ void cg::renderer::dx12_renderer::load_pipeline()
 	THROW_IF_FAILED(
 		device->CreateDescriptorHeap(&cbv_heap_desc, IID_PPV_ARGS(&cbv_heap)));
 
+	for (size_t i = 0; i < frame_number; i++)
+	{
+		THROW_IF_FAILED(device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&command_allocators[i])));
+	}
 }
 
 void cg::renderer::dx12_renderer::load_assets()
@@ -191,6 +207,10 @@ void cg::renderer::dx12_renderer::load_assets()
 		THROW_IF_FAILED(result);
 	}
 
+	THROW_IF_FAILED(device->CreateRootSignature(
+		0, signature->GetBufferPointer(), signature->GetBufferSize(),
+		IID_PPV_ARGS(&root_signature)));
+
 	// Compile shaders 
 	WCHAR buffer[MAX_PATH];
 	GetModuleFileName(NULL, buffer, MAX_PATH);
@@ -218,6 +238,45 @@ void cg::renderer::dx12_renderer::load_assets()
 		THROW_IF_FAILED(result);
 	}
 
+	D3D12_INPUT_ELEMENT_DESC input_element_descriptors[] = { 
+		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, 
+			D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+		{ "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12,
+		  D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+		{ "COLOR", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 24,
+		  D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+		{ "COLOR", 1, DXGI_FORMAT_R32G32B32_FLOAT, 0, 36,
+		  D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+		{ "COLOR", 2, DXGI_FORMAT_R32G32B32_FLOAT, 0, 48,
+		  D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+	};
+
+	D3D12_GRAPHICS_PIPELINE_STATE_DESC pso_descriptor = {};
+	pso_descriptor.InputLayout = { input_element_descriptors,
+								   _countof(input_element_descriptors) };
+	pso_descriptor.pRootSignature = root_signature.Get();
+	pso_descriptor.VS = CD3DX12_SHADER_BYTECODE(vertex_shader.Get());
+	pso_descriptor.PS = CD3DX12_SHADER_BYTECODE(pixel_shader.Get());
+	pso_descriptor.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
+	pso_descriptor.RasterizerState.FrontCounterClockwise = TRUE;
+	pso_descriptor.RasterizerState.FillMode = D3D12_FILL_MODE_SOLID;
+	pso_descriptor.RasterizerState.DepthClipEnable = FALSE;
+	pso_descriptor.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
+	pso_descriptor.DepthStencilState.DepthEnable = FALSE;
+	pso_descriptor.DepthStencilState.StencilEnable = FALSE;
+	pso_descriptor.SampleMask = UINT_MAX;
+	pso_descriptor.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+	pso_descriptor.NumRenderTargets = 1;
+	pso_descriptor.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
+	pso_descriptor.SampleDesc.Count = 1;
+
+	THROW_IF_FAILED(device->CreateGraphicsPipelineState(&pso_descriptor, IID_PPV_ARGS(&pipeline_state)));
+
+	// Create command list
+	THROW_IF_FAILED(device->CreateCommandList(
+		0, D3D12_COMMAND_LIST_TYPE_DIRECT, command_allocators[0].Get(),
+		pipeline_state.Get(), IID_PPV_ARGS(&command_list)));
+	THROW_IF_FAILED(command_list->Close());
 
 	// Create and upload vertex buffer
 	auto vertex_buffer_data = model->get_vertex_buffer();
@@ -261,20 +320,81 @@ void cg::renderer::dx12_renderer::load_assets()
 
 	device->CreateConstantBufferView(
 		&cbv_descriptor, cbv_heap->GetCPUDescriptorHandleForHeapStart());
+
+	// Create sync
+	THROW_IF_FAILED(device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&fence)));
+	fence_event = CreateEvent(nullptr, FALSE, FALSE, nullptr);
+	if (fence_event == nullptr)
+	{
+		THROW_IF_FAILED(HRESULT_FROM_WIN32(GetLastError()));
+	}
+
+	wait_for_gpu();
 }
 
 void cg::renderer::dx12_renderer::populate_command_list()
 {
-	//THROW_ERROR("Not implemented yet")
+	// Resetting
+	THROW_IF_FAILED(command_allocators[frame_index]->Reset());
+	THROW_IF_FAILED(command_list->Reset(command_allocators[frame_index].Get(), pipeline_state.Get()));
+
+	// Initial state
+	command_list->SetGraphicsRootSignature(root_signature.Get());
+	ID3D12DescriptorHeap* heaps[] = { cbv_heap.Get() };
+	command_list->SetDescriptorHeaps(_countof(heaps), heaps);
+	command_list->SetGraphicsRootDescriptorTable(0, cbv_heap->GetGPUDescriptorHandleForHeapStart());
+	command_list->RSSetViewports(1, &view_port);
+	command_list->RSSetScissorRects(1, &scissor_rect);
+
+	command_list->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(
+		render_targets[frame_index].Get(),
+		D3D12_RESOURCE_STATE_PRESENT,
+		D3D12_RESOURCE_STATE_RENDER_TARGET
+	));
+
+	// Drawing
+	CD3DX12_CPU_DESCRIPTOR_HANDLE rtv_handle(
+		rtv_heap->GetCPUDescriptorHandleForHeapStart(), frame_index, rtv_descriptor_size);
+	command_list->OMSetRenderTargets(1, &rtv_handle, FALSE, nullptr);
+	const float clear_color[] = { 0.f, 0.f, 0.f, 1.f };
+	command_list->ClearRenderTargetView(rtv_handle, clear_color, 0, nullptr);
+	command_list->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	command_list->IASetVertexBuffers(0, 1, &vertex_buffer_view);
+	command_list->DrawInstanced(
+		model->get_vertex_buffer()->get_number_of_elements(), 1, 0, 0);
+
+	command_list->ResourceBarrier(
+		1, &CD3DX12_RESOURCE_BARRIER::Transition(
+			   render_targets[frame_index].Get(), D3D12_RESOURCE_STATE_RENDER_TARGET,
+			   D3D12_RESOURCE_STATE_PRESENT));
+	THROW_IF_FAILED(command_list->Close());
 }
 
 
 void cg::renderer::dx12_renderer::move_to_next_frame()
 {
-	//THROW_ERROR("Not implemented yet")
+	const UINT64 current_fence_value = fence_values[frame_index];
+	THROW_IF_FAILED(command_queue->Signal(fence.Get(), current_fence_value));
+
+	frame_index = swap_chain->GetCurrentBackBufferIndex();
+
+	if (fence->GetCompletedValue() < fence_values[frame_index])
+	{
+		THROW_IF_FAILED(
+			fence->SetEventOnCompletion(fence_values[frame_index], fence_event));
+		WaitForSingleObjectEx(fence_event, INFINITE, FALSE);
+	}
+
+	fence_values[frame_index] = current_fence_value + 1;
 }
 
 void cg::renderer::dx12_renderer::wait_for_gpu()
 {
-	//THROW_ERROR("Not implemented yet")
+	THROW_IF_FAILED(command_queue->Signal(fence.Get(), fence_values[frame_index]));
+
+	THROW_IF_FAILED(fence->SetEventOnCompletion(fence_values[frame_index], fence_event));
+
+	WaitForSingleObjectEx(fence_event, INFINITE, FALSE);
+
+	fence_values[frame_index]++;
 }
