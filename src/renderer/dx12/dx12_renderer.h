@@ -54,6 +54,7 @@ protected:
 	D3D12_VERTEX_BUFFER_VIEW vertex_buffer_view;
 
 	DirectX::XMMATRIX world_view_projection;
+	DirectX::XMMATRIX world_projection;
 	ComPtr<ID3D12Resource> constant_buffer;
 	UINT8* constant_buffer_data_begin;
 
