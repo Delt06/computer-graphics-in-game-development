@@ -39,8 +39,10 @@ protected:
 	ComPtr<IDXGISwapChain3> swap_chain;
 	ComPtr<ID3D12DescriptorHeap> rtv_heap;
 	ComPtr<ID3D12DescriptorHeap> cbv_heap;
+	ComPtr<ID3D12DescriptorHeap> dsv_heap;
 	UINT rtv_descriptor_size;
 	ComPtr<ID3D12Resource> render_targets[frame_number];
+	ComPtr<ID3D12Resource> depth_buffer;
 	ComPtr<ID3D12CommandAllocator> command_allocators[frame_number];
 	ComPtr<ID3D12PipelineState> pipeline_state;
 	ComPtr<ID3D12GraphicsCommandList> command_list;

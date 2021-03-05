@@ -156,6 +156,38 @@ void cg::renderer::dx12_renderer::load_pipeline()
 		render_targets[i]->SetName(name.c_str());
 	}
 
+	// Create depth stencil descriptor heap 
+	D3D12_DESCRIPTOR_HEAP_DESC dsv_heap_desc = {};
+	dsv_heap_desc.NumDescriptors = 1;
+	dsv_heap_desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
+	dsv_heap_desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
+	THROW_IF_FAILED(
+		device->CreateDescriptorHeap(&dsv_heap_desc, IID_PPV_ARGS(&dsv_heap)));
+
+	// Create depth buffer
+	CD3DX12_RESOURCE_DESC depth_buffer_desc(
+		D3D12_RESOURCE_DIMENSION_TEXTURE2D,
+		0, settings->width, settings->height, 1, 1, 
+		DXGI_FORMAT_D32_FLOAT,
+		1, 0, 
+		D3D12_TEXTURE_LAYOUT_UNKNOWN,
+		D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL | D3D12_RESOURCE_FLAG_DENY_SHADER_RESOURCE
+	);
+	D3D12_CLEAR_VALUE depth_clear_value{};
+	depth_clear_value.Format = DXGI_FORMAT_D32_FLOAT;
+	depth_clear_value.DepthStencil.Depth = 1.0f;
+	depth_clear_value.DepthStencil.Stencil = 0;
+
+	THROW_IF_FAILED(device->CreateCommittedResource(
+		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT), 
+		D3D12_HEAP_FLAG_NONE,
+		&depth_buffer_desc,
+		D3D12_RESOURCE_STATE_DEPTH_WRITE, &depth_clear_value, IID_PPV_ARGS(&depth_buffer)));
+	depth_buffer->SetName(L"Depth buffer");
+
+	device->CreateDepthStencilView(depth_buffer.Get(), nullptr, dsv_heap->GetCPUDescriptorHandleForHeapStart());
+
+
 	// Create descriptor heap for CBV
 	D3D12_DESCRIPTOR_HEAP_DESC cbv_heap_desc = {};
 	cbv_heap_desc.NumDescriptors = 1;
@@ -262,12 +294,15 @@ void cg::renderer::dx12_renderer::load_assets()
 	pso_descriptor.RasterizerState.FillMode = D3D12_FILL_MODE_SOLID;
 	pso_descriptor.RasterizerState.DepthClipEnable = FALSE;
 	pso_descriptor.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
-	pso_descriptor.DepthStencilState.DepthEnable = FALSE;
+	pso_descriptor.DepthStencilState.DepthEnable = TRUE;
 	pso_descriptor.DepthStencilState.StencilEnable = FALSE;
+	pso_descriptor.DepthStencilState.DepthFunc = D3D12_COMPARISON_FUNC_LESS_EQUAL;
+	pso_descriptor.DepthStencilState.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ALL;
 	pso_descriptor.SampleMask = UINT_MAX;
 	pso_descriptor.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
 	pso_descriptor.NumRenderTargets = 1;
 	pso_descriptor.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
+	pso_descriptor.DSVFormat = DXGI_FORMAT_D32_FLOAT;
 	pso_descriptor.SampleDesc.Count = 1;
 
 	THROW_IF_FAILED(device->CreateGraphicsPipelineState(&pso_descriptor, IID_PPV_ARGS(&pipeline_state)));
@@ -355,9 +390,12 @@ void cg::renderer::dx12_renderer::populate_command_list()
 	// Drawing
 	CD3DX12_CPU_DESCRIPTOR_HANDLE rtv_handle(
 		rtv_heap->GetCPUDescriptorHandleForHeapStart(), frame_index, rtv_descriptor_size);
-	command_list->OMSetRenderTargets(1, &rtv_handle, FALSE, nullptr);
+	CD3DX12_CPU_DESCRIPTOR_HANDLE dsv_handle(
+		dsv_heap->GetCPUDescriptorHandleForHeapStart());
+	command_list->OMSetRenderTargets(1, &rtv_handle, TRUE, &dsv_handle);
 	const float clear_color[] = { 0.f, 0.f, 0.f, 1.f };
 	command_list->ClearRenderTargetView(rtv_handle, clear_color, 0, nullptr);
+	command_list->ClearDepthStencilView(dsv_handle, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
 	command_list->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 	command_list->IASetVertexBuffers(0, 1, &vertex_buffer_view);
 	command_list->DrawInstanced(
