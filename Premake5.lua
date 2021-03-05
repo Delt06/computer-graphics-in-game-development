@@ -164,7 +164,7 @@ project "03. DirectX 12"
     kind "WindowedApp"
     defines { "DX12" }
     entrypoint "WinMainCRTStartup"
-    links { "d3d12", "dxgi", "d3dcompiler" }
+    links { "d3d12", "dxgi", "d3dcompiler", "dxguid" }
     includedirs { "libs/stb", "libs/tinyobjloader", "libs/linalg", "libs/cxxopts/include" }
     includedirs { "libs/D3DX12", "src" }
     files { "src/settings.*"}

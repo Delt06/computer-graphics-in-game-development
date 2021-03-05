@@ -95,7 +95,7 @@ void cg::renderer::dx12_renderer::load_pipeline()
 	THROW_IF_FAILED(CreateDXGIFactory2(dxgi_factory_flags, IID_PPV_ARGS(&dxgi_factory)));
 
 	ComPtr<IDXGIAdapter1> hardware_adapter;
-	dxgi_factory->EnumAdapters1(0, &hardware_adapter);
+	dxgi_factory->EnumAdapters1(1, &hardware_adapter);
 #ifdef DEBUG
 	DXGI_ADAPTER_DESC adapter_desc = {};
 	hardware_adapter->GetDesc(&adapter_desc);
@@ -311,7 +311,6 @@ void cg::renderer::dx12_renderer::load_assets()
 	THROW_IF_FAILED(device->CreateCommandList(
 		0, D3D12_COMMAND_LIST_TYPE_DIRECT, command_allocators[0].Get(),
 		pipeline_state.Get(), IID_PPV_ARGS(&command_list)));
-	THROW_IF_FAILED(command_list->Close());
 
 	// Create and upload vertex buffer
 	auto vertex_buffer_data = model->get_vertex_buffer();
@@ -322,15 +321,26 @@ void cg::renderer::dx12_renderer::load_assets()
 		D3D12_HEAP_FLAG_NONE, 
 		&CD3DX12_RESOURCE_DESC::Buffer(vertex_buffer_size),
 		D3D12_RESOURCE_STATE_GENERIC_READ,
-		nullptr, IID_PPV_ARGS(&vertex_buffer)
+		nullptr, IID_PPV_ARGS(&upload_vertex_buffer)
 		));
+
+	THROW_IF_FAILED(device->CreateCommittedResource(
+		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT), D3D12_HEAP_FLAG_NONE,
+		&CD3DX12_RESOURCE_DESC::Buffer(vertex_buffer_size), D3D12_RESOURCE_STATE_COPY_DEST,
+		nullptr, IID_PPV_ARGS(&vertex_buffer)));
 	vertex_buffer->SetName(L"Vertex buffer");
 
-	UINT8* vertex_data_begin;
+	D3D12_SUBRESOURCE_DATA vertex_data{};
+	vertex_data.pData = vertex_buffer_data->get_data();
+	vertex_data.RowPitch = vertex_buffer_size;
+	vertex_data.SlicePitch = vertex_buffer_size;
+	UpdateSubresources(command_list.Get(), vertex_buffer.Get(), upload_vertex_buffer.Get(), 0, 0, 1, &vertex_data);
+	command_list->ResourceBarrier(
+		1, &CD3DX12_RESOURCE_BARRIER::Transition(
+			  vertex_buffer.Get(), D3D12_RESOURCE_STATE_COPY_DEST,
+			   D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER));
+
 	CD3DX12_RANGE read_range(0, 0);
-	THROW_IF_FAILED(vertex_buffer->Map(0, &read_range, reinterpret_cast<void**>(&vertex_data_begin)));
-	memcpy(vertex_data_begin, vertex_buffer_data->get_data(), vertex_buffer_size);
-	vertex_buffer->Unmap(0, nullptr);
 
 	// Create VB descriptor
 	vertex_buffer_view.BufferLocation = vertex_buffer->GetGPUVirtualAddress();
@@ -355,6 +365,10 @@ void cg::renderer::dx12_renderer::load_assets()
 
 	device->CreateConstantBufferView(
 		&cbv_descriptor, cbv_heap->GetCPUDescriptorHandleForHeapStart());
+
+	THROW_IF_FAILED(command_list->Close());
+	ID3D12CommandList* command_lists[] = { command_list.Get() };
+	command_queue->ExecuteCommandLists(_countof(command_lists), command_lists);
 
 	// Create sync
 	THROW_IF_FAILED(device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&fence)));

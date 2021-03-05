@@ -52,6 +52,7 @@ protected:
 	CD3DX12_RECT scissor_rect;
 
 	// Resources
+	ComPtr<ID3D12Resource> upload_vertex_buffer;
 	ComPtr<ID3D12Resource> vertex_buffer;
 	D3D12_VERTEX_BUFFER_VIEW vertex_buffer_view;
 
