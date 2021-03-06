@@ -38,13 +38,14 @@ protected:
 	ComPtr<ID3D12CommandQueue> command_queue;
 	ComPtr<IDXGISwapChain3> swap_chain;
 	ComPtr<ID3D12DescriptorHeap> rtv_heap;
-	ComPtr<ID3D12DescriptorHeap> cbv_heap;
+	ComPtr<ID3D12DescriptorHeap> cbv_srv_heap;
 	ComPtr<ID3D12DescriptorHeap> dsv_heap;
 	UINT rtv_descriptor_size;
 	ComPtr<ID3D12Resource> render_targets[frame_number];
 	ComPtr<ID3D12Resource> depth_buffer;
 	ComPtr<ID3D12CommandAllocator> command_allocators[frame_number];
 	ComPtr<ID3D12PipelineState> pipeline_state;
+	ComPtr<ID3D12PipelineState> pipeline_state_textures;
 	ComPtr<ID3D12GraphicsCommandList> command_list;
 
 	ComPtr<ID3D12RootSignature> root_signature;
@@ -52,9 +53,16 @@ protected:
 	CD3DX12_RECT scissor_rect;
 
 	// Resources
-	ComPtr<ID3D12Resource> upload_vertex_buffer;
-	ComPtr<ID3D12Resource> vertex_buffer;
-	D3D12_VERTEX_BUFFER_VIEW vertex_buffer_view;
+	std::vector<ComPtr<ID3D12Resource>> upload_vertex_buffer;
+	std::vector<ComPtr<ID3D12Resource>> vertex_buffer;
+	std::vector<D3D12_VERTEX_BUFFER_VIEW> vertex_buffer_view;
+
+	std::vector<ComPtr<ID3D12Resource>> upload_index_buffer;
+	std::vector<ComPtr<ID3D12Resource>> index_buffer;
+	std::vector<D3D12_INDEX_BUFFER_VIEW> index_buffer_view;
+
+	std::vector<ComPtr<ID3D12Resource>> upload_textures;
+	std::vector<ComPtr<ID3D12Resource>> textures;
 
 	DirectX::XMMATRIX world_view_projection;
 	DirectX::XMMATRIX world_projection;

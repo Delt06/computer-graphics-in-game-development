@@ -134,6 +134,8 @@ struct vertex
 	float emissive_g;
 	float emissive_b;
 
+	float u, v;
+
 	inline static vertex vertex::interpolate_bary(
 		const vertex& v1, const vertex& v2, const vertex& v3, float u, float v, float w)
 	{

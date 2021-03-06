@@ -3,6 +3,50 @@
   "Id": "6c67e7cc-5835-dbd2-41c9-4bf92d36b737",
   "Items": [
     {
+      "Id": "4f5115f4-480f-4361-b4be-6ecb86b81e7a",
+      "Command": "Stickman",
+      "Items": [
+        {
+          "Id": "22343c6a-8ccd-406a-9ebf-802281c49fba",
+          "Command": "--model_path=models\\stickman.obj"
+        },
+        {
+          "Id": "f369ba9b-8775-4915-bf05-516077e18e37",
+          "Command": "--camera_position=-0.5,2,2"
+        },
+        {
+          "Id": "51e5590a-8720-4b3e-b7ec-3b6ac349a406",
+          "Command": "--camera_phi=-25"
+        },
+        {
+          "Id": "650204f4-8ece-436f-b8e3-2c1a9979877a",
+          "Command": "--camera_theta=15"
+        },
+        {
+          "Id": "8d6d6704-077d-4a4a-b0b7-4bad2e8e6951",
+          "Command": "--result_path=rasterizer_cube.png"
+        }
+      ]
+    },
+    {
+      "Id": "d242e9ff-28da-4027-85d6-718baceeb11c",
+      "Command": "--accumulation_num=1"
+    },
+    {
+      "Id": "a9f1137c-cd55-41c8-9a40-59d65ef736ac",
+      "Command": "CornellBox",
+      "Items": [
+        {
+          "Id": "4aac6c7b-cc2f-455d-8f4a-06ad6ccca987",
+          "Command": "--model_path=models\\CornellBox-Original.obj"
+        },
+        {
+          "Id": "7c980031-ed0d-412e-9aaf-5311a74da58f",
+          "Command": "--camera_position=0.0,1.0,3.0"
+        }
+      ]
+    },
+    {
       "Id": "bafb5833-9692-45bf-b179-9700b08d3e79",
       "Command": "720p",
       "Items": [
@@ -64,11 +108,11 @@
     },
     {
       "Id": "f390b517-2972-4adf-b0c7-df09c42695f6",
-      "Command": "CornellBox",
+      "Command": "Sponza",
       "Items": [
         {
           "Id": "86d6a422-cb28-4fc3-95b2-de97d907afb4",
-          "Command": "--model_path=models\\CornellBox-Original.obj"
+          "Command": "--model_path=models\\sponza.obj"
         },
         {
           "Id": "fe64835c-e187-46a3-af7e-b326a0c5248c",
